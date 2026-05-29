@@ -2,7 +2,6 @@ import streamlit as st
 import math
 import random
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import streamlit.components.v1 as components
 
@@ -20,7 +19,6 @@ menu = st.sidebar.radio(
 # ════════════════════════════════════════════════════════════
 if menu == "🧮 계산기":
 
-    # 세션 상태 초기화
     if "expression" not in st.session_state:
         st.session_state.expression = ""
     if "result" not in st.session_state:
@@ -160,14 +158,12 @@ elif menu == "🎲 확률 시뮬레이터":
     st.markdown("주사위 또는 동전을 여러 번 던져 결과를 시각화합니다.")
     st.divider()
 
-    # ── 설정 패널 ──────────────────────────────────────────
     col_left, col_right = st.columns(2)
     with col_left:
         sim_type = st.selectbox("시뮬레이션 종류", ["🎲 주사위", "🪙 동전"])
     with col_right:
         trials = st.number_input(
-            "시행 횟수",
-            min_value=10, max_value=100000, value=100, step=10
+            "시행 횟수", min_value=10, max_value=100000, value=100, step=10
         )
 
     if sim_type == "🎲 주사위":
@@ -178,7 +174,7 @@ elif menu == "🎲 확률 시뮬레이터":
     if run_btn:
         st.divider()
 
-        # ── 주사위 시뮬레이션 ───────────────────────────────
+        # ── 주사위 ────────────────────────────────────────
         if sim_type == "🎲 주사위":
             results = [random.randint(1, dice_faces) for _ in range(int(trials))]
             counts = {i: results.count(i) for i in range(1, dice_faces + 1)}
@@ -214,15 +210,13 @@ elif menu == "🎲 확률 시뮬레이터":
 
             # 파이 차트
             fig_pie = go.Figure(go.Pie(
-                labels=labels,
-                values=values,
-                hole=0.35,
-                textinfo="label+percent",
+                labels=labels, values=values,
+                hole=0.35, textinfo="label+percent"
             ))
             fig_pie.update_layout(title="각 면별 출현 비율", height=400)
             st.plotly_chart(fig_pie, use_container_width=True)
 
-            # 누적 수렴 그래프 (1번 면 기준)
+            # 수렴 그래프
             cumulative = []
             count_1 = 0
             for i, r in enumerate(results, 1):
@@ -239,8 +233,7 @@ elif menu == "🎲 확률 시뮬레이터":
                 name="1면 출현율"
             ))
             fig_conv.add_hline(
-                y=expected_pct,
-                line_dash="dash", line_color="red",
+                y=expected_pct, line_dash="dash", line_color="red",
                 annotation_text=f"이론 확률 {expected_pct}%"
             )
             fig_conv.update_layout(
@@ -252,7 +245,7 @@ elif menu == "🎲 확률 시뮬레이터":
             )
             st.plotly_chart(fig_conv, use_container_width=True)
 
-            # 결과 테이블
+            # 통계표
             st.subheader("📊 상세 통계표")
             df = pd.DataFrame({
                 "면": labels,
@@ -263,7 +256,7 @@ elif menu == "🎲 확률 시뮬레이터":
             })
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # ── 동전 시뮬레이션 ────────────────────────────────
+        # ── 동전 ──────────────────────────────────────────
         elif sim_type == "🪙 동전":
             results = [random.choice(["앞면", "뒷면"]) for _ in range(int(trials))]
             heads = results.count("앞면")
@@ -280,12 +273,10 @@ elif menu == "🎲 확률 시뮬레이터":
                 x=["앞면", "뒷면"],
                 y=[heads, tails],
                 marker_color=["#1565c0", "#c62828"],
-                text=[heads, tails],
-                textposition="outside"
+                text=[heads, tails], textposition="outside"
             ))
             fig_bar.add_hline(
-                y=int(trials) / 2,
-                line_dash="dash", line_color="green",
+                y=int(trials) / 2, line_dash="dash", line_color="green",
                 annotation_text=f"이론값 ({int(trials)//2}회)"
             )
             fig_bar.update_layout(
@@ -307,7 +298,7 @@ elif menu == "🎲 확률 시뮬레이터":
             fig_pie.update_layout(title="앞면 / 뒷면 비율", height=400)
             st.plotly_chart(fig_pie, use_container_width=True)
 
-            # 누적 수렴 그래프
+            # 수렴 그래프
             cumulative = []
             cnt = 0
             for i, r in enumerate(results, 1):
@@ -336,7 +327,7 @@ elif menu == "🎲 확률 시뮬레이터":
             )
             st.plotly_chart(fig_conv, use_container_width=True)
 
-            # 결과 테이블
+            # 통계표
             st.subheader("📊 상세 통계표")
             df = pd.DataFrame({
                 "결과": ["앞면", "뒷면"],
