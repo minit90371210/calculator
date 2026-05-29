@@ -2,13 +2,10 @@ import streamlit as st
 import math
 import random
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['font.family'] = 'DejaVu Sans'
 import streamlit.components.v1 as components
-
-try:
-    import plotly.graph_objects as go
-    PLOTLY_OK = True
-except ImportError:
-    PLOTLY_OK = False
 
 st.set_page_config(page_title="멀티 앱", page_icon="🧮", layout="centered")
 
@@ -64,22 +61,21 @@ if menu == "🧮 계산기":
 
     st.title("🧮 다기능 계산기")
 
-    expr_display = st.session_state.expression if st.session_state.expression else "0"
+    expr_display   = st.session_state.expression if st.session_state.expression else "0"
     result_display = f"= {st.session_state.result}" if st.session_state.result else "&nbsp;"
-    result_color = "#ff5252" if "⚠️" in st.session_state.result else "#4fc3f7"
+    result_color   = "#ff5252" if "⚠️" in st.session_state.result else "#4fc3f7"
 
     st.markdown(f"""
-    <div style="background:#1e1e1e; color:#ffffff; font-size:1.4rem;
-         padding:0.8rem 1rem; border-radius:10px 10px 0 0;
-         text-align:right; min-height:3rem; word-break:break-all;">
+    <div style="background:#1e1e1e;color:#ffffff;font-size:1.4rem;
+         padding:0.8rem 1rem;border-radius:10px 10px 0 0;
+         text-align:right;min-height:3rem;word-break:break-all;">
       {expr_display}
     </div>
-    <div style="background:#2a2a2a; color:{result_color}; font-size:2rem; font-weight:bold;
-         padding:0.5rem 1rem; border-radius:0 0 10px 10px;
-         text-align:right; min-height:3rem;">
+    <div style="background:#2a2a2a;color:{result_color};font-size:2rem;font-weight:bold;
+         padding:0.5rem 1rem;border-radius:0 0 10px 10px;
+         text-align:right;min-height:3rem;">
       {result_display}
-    </div>
-    <br>
+    </div><br>
     """, unsafe_allow_html=True)
 
     r0 = st.columns(4)
@@ -161,11 +157,6 @@ elif menu == "🎲 확률 시뮬레이터":
 
     st.title("🎲 확률 시뮬레이터")
     st.markdown("주사위 또는 동전을 여러 번 던져 결과를 시각화합니다.")
-
-    if not PLOTLY_OK:
-        st.error("plotly 라이브러리를 불러올 수 없습니다. requirements.txt에 plotly==5.18.0 이 있는지 확인하세요.")
-        st.stop()
-
     st.divider()
 
     col_left, col_right = st.columns(2)
@@ -186,43 +177,51 @@ elif menu == "🎲 확률 시뮬레이터":
 
         # ── 주사위 ────────────────────────────────────────
         if sim_type == "🎲 주사위":
-            results = [random.randint(1, dice_faces) for _ in range(int(trials))]
-            counts  = {i: results.count(i) for i in range(1, dice_faces + 1)}
-            labels  = [f"{i}면" for i in counts.keys()]
-            values  = list(counts.values())
-            expected     = int(trials) / dice_faces
+            results     = [random.randint(1, dice_faces) for _ in range(int(trials))]
+            counts      = {i: results.count(i) for i in range(1, dice_faces + 1)}
+            labels      = [f"{i}면" for i in counts.keys()]
+            values      = list(counts.values())
+            expected    = int(trials) / dice_faces
             expected_pct = round(100 / dice_faces, 2)
             actual_pcts  = [round(v / int(trials) * 100, 2) for v in values]
 
             st.subheader(f"🎲 {dice_faces}면 주사위 {int(trials):,}회 결과")
 
             # 막대 그래프
-            fig_bar = go.Figure()
-            fig_bar.add_trace(go.Bar(
-                x=labels, y=values,
-                marker_color="#1565c0",
-                text=values, textposition="outside",
-                name="횟수"
-            ))
-            fig_bar.add_hline(
-                y=expected, line_dash="dash", line_color="red",
-                annotation_text=f"이론값 ({expected:.1f}회)",
-                annotation_position="top right"
-            )
-            fig_bar.update_layout(
-                title="각 면별 출현 횟수",
-                xaxis_title="주사위 면", yaxis_title="횟수",
-                plot_bgcolor="#f9f9f9", height=400
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+            fig1, ax1 = plt.subplots(figsize=(9, 4))
+            bars = ax1.bar(labels, values, color="#1565c0", edgecolor="white", width=0.6)
+            ax1.axhline(y=expected, color="red", linestyle="--", linewidth=1.5,
+                        label=f"이론값 ({expected:.1f}회)")
+            for bar, val in zip(bars, values):
+                ax1.text(bar.get_x() + bar.get_width() / 2,
+                         bar.get_height() + max(values) * 0.01,
+                         str(val), ha="center", va="bottom", fontsize=9, color="#333")
+            ax1.set_title(f"{dice_faces}면 주사위 - 각 면별 출현 횟수", fontsize=13, pad=12)
+            ax1.set_xlabel("주사위 면")
+            ax1.set_ylabel("횟수")
+            ax1.legend()
+            ax1.set_facecolor("#f5f5f5")
+            fig1.patch.set_facecolor("#ffffff")
+            fig1.tight_layout()
+            st.pyplot(fig1)
+            plt.close(fig1)
 
             # 파이 차트
-            fig_pie = go.Figure(go.Pie(
-                labels=labels, values=values,
-                hole=0.35, textinfo="label+percent"
-            ))
-            fig_pie.update_layout(title="각 면별 출현 비율", height=400)
-            st.plotly_chart(fig_pie, use_container_width=True)
+            fig2, ax2 = plt.subplots(figsize=(6, 6))
+            colors = plt.cm.Blues(
+                [0.35 + 0.55 * i / dice_faces for i in range(dice_faces)]
+            )
+            wedges, texts, autotexts = ax2.pie(
+                values, labels=labels, autopct="%1.1f%%",
+                startangle=90, colors=colors,
+                wedgeprops=dict(edgecolor="white", linewidth=1.5)
+            )
+            for at in autotexts:
+                at.set_fontsize(9)
+            ax2.set_title("각 면별 출현 비율", fontsize=13, pad=12)
+            fig2.tight_layout()
+            st.pyplot(fig2)
+            plt.close(fig2)
 
             # 수렴 그래프
             cumulative, count_1 = [], 0
@@ -231,31 +230,29 @@ elif menu == "🎲 확률 시뮬레이터":
                     count_1 += 1
                 cumulative.append(round(count_1 / i * 100, 2))
 
-            fig_conv = go.Figure()
-            fig_conv.add_trace(go.Scatter(
-                x=list(range(1, int(trials) + 1)), y=cumulative,
-                mode="lines", line=dict(color="#1565c0", width=1.5),
-                name="1면 출현율"
-            ))
-            fig_conv.add_hline(
-                y=expected_pct, line_dash="dash", line_color="red",
-                annotation_text=f"이론 확률 {expected_pct}%"
-            )
-            fig_conv.update_layout(
-                title="'1면' 누적 출현율 수렴 그래프",
-                xaxis_title="시행 횟수", yaxis_title="누적 출현율 (%)",
-                plot_bgcolor="#f9f9f9", height=350
-            )
-            st.plotly_chart(fig_conv, use_container_width=True)
+            fig3, ax3 = plt.subplots(figsize=(9, 3.5))
+            ax3.plot(range(1, int(trials) + 1), cumulative,
+                     color="#1565c0", linewidth=1.2, label="1면 누적 출현율")
+            ax3.axhline(y=expected_pct, color="red", linestyle="--", linewidth=1.5,
+                        label=f"이론 확률 {expected_pct}%")
+            ax3.set_title("'1면' 누적 출현율 수렴 그래프 (대수의 법칙)", fontsize=13, pad=12)
+            ax3.set_xlabel("시행 횟수")
+            ax3.set_ylabel("누적 출현율 (%)")
+            ax3.legend()
+            ax3.set_facecolor("#f5f5f5")
+            fig3.patch.set_facecolor("#ffffff")
+            fig3.tight_layout()
+            st.pyplot(fig3)
+            plt.close(fig3)
 
             # 통계표
             st.subheader("📊 상세 통계표")
             df = pd.DataFrame({
-                "면": labels,
-                "출현 횟수": values,
+                "면":           labels,
+                "출현 횟수":    values,
                 "실제 확률 (%)": actual_pcts,
                 "이론 확률 (%)": [expected_pct] * dice_faces,
-                "차이 (%)": [round(a - expected_pct, 2) for a in actual_pcts]
+                "차이 (%)":     [round(a - expected_pct, 2) for a in actual_pcts],
             })
             st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -274,30 +271,37 @@ elif menu == "🎲 확률 시뮬레이터":
                       f"{round(tails / int(trials) * 100, 1)}%")
 
             # 막대 그래프
-            fig_bar = go.Figure(go.Bar(
-                x=["앞면", "뒷면"], y=[heads, tails],
-                marker_color=["#1565c0", "#c62828"],
-                text=[heads, tails], textposition="outside"
-            ))
-            fig_bar.add_hline(
-                y=int(trials) / 2, line_dash="dash", line_color="green",
-                annotation_text=f"이론값 ({int(trials)//2}회)"
-            )
-            fig_bar.update_layout(
-                title="앞면 / 뒷면 출현 횟수",
-                yaxis_title="횟수", plot_bgcolor="#f9f9f9", height=400
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+            fig1, ax1 = plt.subplots(figsize=(6, 4))
+            bars = ax1.bar(["앞면", "뒷면"], [heads, tails],
+                           color=["#1565c0", "#c62828"],
+                           edgecolor="white", width=0.5)
+            ax1.axhline(y=int(trials) / 2, color="green", linestyle="--",
+                        linewidth=1.5, label=f"이론값 ({int(trials)//2}회)")
+            for bar, val in zip(bars, [heads, tails]):
+                ax1.text(bar.get_x() + bar.get_width() / 2,
+                         bar.get_height() + max(heads, tails) * 0.01,
+                         str(val), ha="center", va="bottom", fontsize=11, color="#333")
+            ax1.set_title("앞면 / 뒷면 출현 횟수", fontsize=13, pad=12)
+            ax1.set_ylabel("횟수")
+            ax1.legend()
+            ax1.set_facecolor("#f5f5f5")
+            fig1.patch.set_facecolor("#ffffff")
+            fig1.tight_layout()
+            st.pyplot(fig1)
+            plt.close(fig1)
 
             # 파이 차트
-            fig_pie = go.Figure(go.Pie(
-                labels=["앞면", "뒷면"], values=[heads, tails],
-                hole=0.35,
-                marker_colors=["#1565c0", "#c62828"],
-                textinfo="label+percent"
-            ))
-            fig_pie.update_layout(title="앞면 / 뒷면 비율", height=400)
-            st.plotly_chart(fig_pie, use_container_width=True)
+            fig2, ax2 = plt.subplots(figsize=(5, 5))
+            ax2.pie(
+                [heads, tails], labels=["앞면", "뒷면"],
+                autopct="%1.1f%%", startangle=90,
+                colors=["#1565c0", "#c62828"],
+                wedgeprops=dict(edgecolor="white", linewidth=2)
+            )
+            ax2.set_title("앞면 / 뒷면 비율", fontsize=13, pad=12)
+            fig2.tight_layout()
+            st.pyplot(fig2)
+            plt.close(fig2)
 
             # 수렴 그래프
             cumulative, cnt = [], 0
@@ -306,33 +310,31 @@ elif menu == "🎲 확률 시뮬레이터":
                     cnt += 1
                 cumulative.append(round(cnt / i * 100, 2))
 
-            fig_conv = go.Figure()
-            fig_conv.add_trace(go.Scatter(
-                x=list(range(1, int(trials) + 1)), y=cumulative,
-                mode="lines", line=dict(color="#1565c0", width=1.5),
-                name="앞면 출현율"
-            ))
-            fig_conv.add_hline(
-                y=50, line_dash="dash", line_color="red",
-                annotation_text="이론 확률 50%"
-            )
-            fig_conv.update_layout(
-                title="앞면 누적 출현율 수렴 그래프",
-                xaxis_title="시행 횟수", yaxis_title="누적 출현율 (%)",
-                plot_bgcolor="#f9f9f9", height=350
-            )
-            st.plotly_chart(fig_conv, use_container_width=True)
+            fig3, ax3 = plt.subplots(figsize=(9, 3.5))
+            ax3.plot(range(1, int(trials) + 1), cumulative,
+                     color="#1565c0", linewidth=1.2, label="앞면 누적 출현율")
+            ax3.axhline(y=50, color="red", linestyle="--", linewidth=1.5,
+                        label="이론 확률 50%")
+            ax3.set_title("앞면 누적 출현율 수렴 그래프 (대수의 법칙)", fontsize=13, pad=12)
+            ax3.set_xlabel("시행 횟수")
+            ax3.set_ylabel("누적 출현율 (%)")
+            ax3.legend()
+            ax3.set_facecolor("#f5f5f5")
+            fig3.patch.set_facecolor("#ffffff")
+            fig3.tight_layout()
+            st.pyplot(fig3)
+            plt.close(fig3)
 
             # 통계표
             st.subheader("📊 상세 통계표")
             df = pd.DataFrame({
-                "결과": ["앞면", "뒷면"],
-                "출현 횟수": [heads, tails],
+                "결과":          ["앞면", "뒷면"],
+                "출현 횟수":     [heads, tails],
                 "실제 확률 (%)": [round(heads/int(trials)*100, 2),
                                    round(tails/int(trials)*100, 2)],
                 "이론 확률 (%)": [50.0, 50.0],
-                "차이 (%)": [round(heads/int(trials)*100 - 50, 2),
-                              round(tails/int(trials)*100 - 50, 2)]
+                "차이 (%)":      [round(heads/int(trials)*100 - 50, 2),
+                                   round(tails/int(trials)*100 - 50, 2)],
             })
             st.dataframe(df, use_container_width=True, hide_index=True)
 
